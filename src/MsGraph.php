@@ -55,10 +55,6 @@ class MsGraph
      */
     public function connect($id = null)
     {
-        //if no id passed get logged in user
-        if ($id == null) {
-            $id = auth()->id();
-        }
 
         //set up the provides loaded values from the config
         $provider = new GenericProvider([
@@ -127,17 +123,11 @@ class MsGraph
      */
     public function disconnect($redirectPath = '/', $logout = true, $id = null)
     {
-        $id = ($id) ? $id : auth()->id();
-        $token = MsGraphToken::where('user_id', $id)->first();
+        $token = MsGraphToken::where('id', $id)->first();
         if ($token != null) {
             $token->delete();
         }
-
-        //if logged in and $logout is set to true then logout
-        if ($logout == true && auth()->check()) {
-            auth()->logout();
-        }
-
+        
         return redirect()->away('https://login.microsoftonline.com/common/oauth2/v2.0/logout?post_logout_redirect_uri='.url($redirectPath));
     }
 
@@ -149,9 +139,7 @@ class MsGraph
      */
     public function getAccessToken($id = null, $returnNullNoAccessToken = null)
     {
-        //use id if passed otherwise use logged in user
-        $id    = ($id) ? $id : auth()->id();
-        $token = MsGraphToken::where('user_id', $id)->first();
+        $token = MsGraphToken::where('id', $id)->first();
 
         // Check if tokens exist otherwise run the oauth request
         if (! isset($token->access_token)) {
@@ -195,13 +183,12 @@ class MsGraph
     }
 
     /**
-     * @param  $id - integar id of user
+     * @param  $id - integer id of the token
      * @return object
      */
     public function getTokenData($id = null)
     {
-        $id = ($id) ? $id : auth()->id();
-        return MsGraphToken::where('user_id', $id)->first();
+        return MsGraphToken::where('id', $id)->first();
     }
 
     /**
@@ -214,9 +201,7 @@ class MsGraph
      */
     protected function storeToken($access_token, $refresh_token, $expires, $id)
     {
-        //cretate a new record or if the user id exists update record
-        return MsGraphToken::updateOrCreate(['user_id' => $id], [
-            'user_id'       => $id,
+        return MsGraphToken::updateOrCreate(['id'  => $id], [
             'access_token'  => $access_token,
             'expires'       => $expires,
             'refresh_token' => $refresh_token
@@ -236,7 +221,7 @@ class MsGraph
         $path    = (isset($args[0])) ? $args[0] : null;
         $data    = (isset($args[1])) ? $args[1] : null;
         $headers = (isset($args[2])) ? $args[2] : null;
-        $id      = (isset($args[3])) ? $args[3] : auth()->id();
+        $id      = (isset($args[3])) ? $args[3] : null;
 
         if (in_array($function, $options)) {
             return self::guzzle($function, $path, $data, $headers, $id);
